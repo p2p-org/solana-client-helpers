@@ -37,14 +37,14 @@ impl Client {
     }
 
     #[track_caller]
-    pub fn create_account(&mut self, owner: &Pubkey, account_data_len: usize, lamports: u64) -> Keypair {
+    pub fn create_account(&mut self, owner: &Pubkey, account_data_len: usize, lamports: Option<u64>) -> Keypair {
         let account = Keypair::new();
 
         let mut transaction = Transaction::new_with_payer(
             &[system_instruction::create_account(
                 &self.payer_pubkey(),
                 &account.pubkey(),
-                lamports.max(self.rent_minimum_balance(account_data_len)),
+                lamports.unwrap_or_else(|| self.rent_minimum_balance(account_data_len)),
                 account_data_len as u64,
                 owner,
             )],

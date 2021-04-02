@@ -28,7 +28,7 @@ impl Client {
     }
 
     #[track_caller]
-    pub fn rent_minimum_balance(&mut self, data_len: usize) -> u64 {
+    pub fn rent_minimum_balance(&self, data_len: usize) -> u64 {
         self.client.get_minimum_balance_for_rent_exemption(data_len).unwrap()
     }
 

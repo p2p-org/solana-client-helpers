@@ -70,6 +70,20 @@ impl Client {
         self.process_transaction(&transaction);
     }
 
+    #[track_caller]
+    pub fn create_associated_token_account_by_payer(&mut self, recipient: &Pubkey, token_mint: &Pubkey) {
+        let mut transaction = Transaction::new_with_payer(
+            &[spl_associated_token_account::create_associated_token_account(
+                &self.payer_pubkey(),
+                recipient,
+                token_mint,
+            )],
+            Some(&self.payer_pubkey()),
+        );
+        transaction.sign(&[self.payer()], self.recent_blockhash());
+        self.process_transaction(&transaction);
+    }
+
     pub fn airdrop(&self, faucet_addr: &SocketAddr, to_pubkey: &Pubkey, lamports: u64) -> ClientResult<Signature> {
         let (blockhash, _fee_calculator) = self.client.get_recent_blockhash()?;
         let transaction = {

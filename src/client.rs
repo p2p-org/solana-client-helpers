@@ -1,7 +1,6 @@
 use std::{net::SocketAddr, ops::Deref, thread, time::Duration};
 
 use solana_client::{client_error::Result as ClientResult, rpc_client::RpcClient};
-use solana_faucet::faucet::request_airdrop_transaction;
 use solana_program::{hash::Hash, pubkey::Pubkey, system_instruction};
 use solana_sdk::{
     signature::{Keypair, Signature, Signer},
@@ -84,21 +83,15 @@ impl Client {
         self.process_transaction(&transaction);
     }
 
-    pub fn airdrop(&self, faucet_addr: &SocketAddr, to_pubkey: &Pubkey, lamports: u64) -> ClientResult<Signature> {
+    pub fn airdrop(&self, to_pubkey: &Pubkey, lamports: u64) -> ClientResult<Signature> {
         let (blockhash, _fee_calculator) = self.client.get_recent_blockhash()?;
-        let transaction = {
-            let mut retries = 5;
-            loop {
-                let result = request_airdrop_transaction(faucet_addr, to_pubkey, lamports, blockhash);
-                if result.is_ok() || retries == 0 {
-                    break result;
-                }
-                retries -= 1;
-                thread::sleep(Duration::from_secs(1));
-            }
-        }?;
+        let signature = self
+            .client
+            .request_airdrop_with_blockhash(to_pubkey, lamports, &blockhash)?;
+        self.client
+            .confirm_transaction_with_spinner(&signature, &blockhash, self.client.commitment())?;
 
-        self.client.send_and_confirm_transaction_with_spinner(&transaction)
+        Ok(signature)
     }
 }
 

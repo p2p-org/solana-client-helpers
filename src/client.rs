@@ -1,11 +1,23 @@
-use std::{net::SocketAddr, ops::Deref, thread, time::Duration};
+use std::ops::{Deref, DerefMut};
 
-use solana_client::{client_error::Result as ClientResult, rpc_client::RpcClient};
-use solana_program::{hash::Hash, pubkey::Pubkey, system_instruction};
+pub use solana_client::{client_error, rpc_client::RpcClient};
+use solana_program::{hash::Hash, program_error::ProgramError, pubkey::Pubkey, system_instruction};
 use solana_sdk::{
     signature::{Keypair, Signature, Signer},
     transaction::Transaction,
 };
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ClientError {
+    #[error(transparent)]
+    Client(#[from] client_error::ClientError),
+
+    #[error(transparent)]
+    Program(#[from] ProgramError),
+}
+
+pub type ClientResult<T> = Result<T, ClientError>;
 
 pub struct Client {
     pub client: RpcClient,
@@ -21,42 +33,52 @@ impl Client {
         self.payer.pubkey()
     }
 
-    #[track_caller]
-    pub fn recent_blockhash(&self) -> Hash {
-        self.client.get_recent_blockhash().unwrap().0
+    pub fn recent_blockhash(&self) -> ClientResult<Hash> {
+        Ok(self.client.get_recent_blockhash()?.0)
+    }
+
+    pub fn process_transaction(&self, transaction: &Transaction) -> ClientResult<()> {
+        self.send_and_confirm_transaction(transaction)?;
+        Ok(())
     }
 
     #[track_caller]
-    pub fn rent_minimum_balance(&self, data_len: usize) -> u64 {
-        self.client.get_minimum_balance_for_rent_exemption(data_len).unwrap()
-    }
-
-    #[track_caller]
-    pub fn process_transaction(&mut self, transaction: &Transaction) {
-        self.client.send_and_confirm_transaction(transaction).unwrap();
-    }
-
-    #[track_caller]
-    pub fn create_account(&mut self, owner: &Pubkey, account_data_len: usize, lamports: Option<u64>) -> Keypair {
+    pub fn create_account(
+        &mut self,
+        owner: &Pubkey,
+        account_data_len: usize,
+        lamports: Option<u64>,
+    ) -> ClientResult<Keypair> {
         let account = Keypair::new();
+        let lamports = if let Some(lamports) = lamports {
+            lamports
+        } else {
+            self.get_minimum_balance_for_rent_exemption(account_data_len)?
+        };
 
         let mut transaction = Transaction::new_with_payer(
             &[system_instruction::create_account(
                 &self.payer_pubkey(),
                 &account.pubkey(),
-                lamports.unwrap_or_else(|| self.rent_minimum_balance(account_data_len)),
+                lamports,
                 account_data_len as u64,
                 owner,
             )],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &account], self.recent_blockhash());
-        self.process_transaction(&transaction);
-        account
+        transaction.sign(&[self.payer(), &account], self.recent_blockhash()?);
+        self.process_transaction(&transaction)?;
+
+        Ok(account)
     }
 
     #[track_caller]
-    pub fn create_associated_token_account(&mut self, funder: &Keypair, recipient: &Pubkey, token_mint: &Pubkey) {
+    pub fn create_associated_token_account(
+        &mut self,
+        funder: &Keypair,
+        recipient: &Pubkey,
+        token_mint: &Pubkey,
+    ) -> ClientResult<()> {
         let mut transaction = Transaction::new_with_payer(
             &[spl_associated_token_account::create_associated_token_account(
                 &funder.pubkey(),
@@ -65,12 +87,16 @@ impl Client {
             )],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), funder], self.recent_blockhash());
-        self.process_transaction(&transaction);
+        transaction.sign(&[self.payer(), funder], self.recent_blockhash()?);
+        self.process_transaction(&transaction)
     }
 
     #[track_caller]
-    pub fn create_associated_token_account_by_payer(&mut self, recipient: &Pubkey, token_mint: &Pubkey) {
+    pub fn create_associated_token_account_by_payer(
+        &mut self,
+        recipient: &Pubkey,
+        token_mint: &Pubkey,
+    ) -> ClientResult<()> {
         let mut transaction = Transaction::new_with_payer(
             &[spl_associated_token_account::create_associated_token_account(
                 &self.payer_pubkey(),
@@ -79,17 +105,14 @@ impl Client {
             )],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer()], self.recent_blockhash());
-        self.process_transaction(&transaction);
+        transaction.sign(&[self.payer()], self.recent_blockhash()?);
+        self.process_transaction(&transaction)
     }
 
     pub fn airdrop(&self, to_pubkey: &Pubkey, lamports: u64) -> ClientResult<Signature> {
         let (blockhash, _fee_calculator) = self.client.get_recent_blockhash()?;
-        let signature = self
-            .client
-            .request_airdrop_with_blockhash(to_pubkey, lamports, &blockhash)?;
-        self.client
-            .confirm_transaction_with_spinner(&signature, &blockhash, self.client.commitment())?;
+        let signature = self.request_airdrop_with_blockhash(to_pubkey, lamports, &blockhash)?;
+        self.confirm_transaction_with_spinner(&signature, &blockhash, self.commitment())?;
 
         Ok(signature)
     }
@@ -100,5 +123,11 @@ impl Deref for Client {
 
     fn deref(&self) -> &Self::Target {
         &self.client
+    }
+}
+
+impl DerefMut for Client {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.client
     }
 }

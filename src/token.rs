@@ -1,6 +1,8 @@
-use solana_program::{program_pack::Pack, pubkey::Pubkey, system_instruction};
 use solana_sdk::{
+    program_pack::Pack,
+    pubkey::Pubkey,
     signature::{Keypair, Signer},
+    system_instruction,
     transaction::Transaction,
 };
 use spl_token::state::{Account as TokenAccount, Mint};
@@ -8,10 +10,10 @@ use spl_token::state::{Account as TokenAccount, Mint};
 use super::client::{Client, ClientResult};
 
 pub trait SplToken {
-    fn create_token_mint(&mut self, owner: &Pubkey, decimals: u8) -> ClientResult<Keypair>;
-    fn create_token_account(&mut self, owner: &Pubkey, token_mint: &Pubkey) -> ClientResult<Keypair>;
+    fn create_token_mint(&self, owner: &Pubkey, decimals: u8) -> ClientResult<Keypair>;
+    fn create_token_account(&self, owner: &Pubkey, token_mint: &Pubkey) -> ClientResult<Keypair>;
     fn mint_to(
-        &mut self,
+        &self,
         owner: &Keypair,
         token_mint: &Pubkey,
         account: &Pubkey,
@@ -19,7 +21,7 @@ pub trait SplToken {
         decimals: u8,
     ) -> ClientResult<()>;
     fn transfer_to(
-        &mut self,
+        &self,
         owner: &Keypair,
         token_mint: &Pubkey,
         source: &Pubkey,
@@ -30,7 +32,7 @@ pub trait SplToken {
 }
 
 impl SplToken for Client {
-    fn create_token_mint(&mut self, owner: &Pubkey, decimals: u8) -> ClientResult<Keypair> {
+    fn create_token_mint(&self, owner: &Pubkey, decimals: u8) -> ClientResult<Keypair> {
         let token_mint = Keypair::new();
 
         let mut transaction = Transaction::new_with_payer(
@@ -52,7 +54,7 @@ impl SplToken for Client {
         Ok(token_mint)
     }
 
-    fn create_token_account(&mut self, owner: &Pubkey, token_mint: &Pubkey) -> ClientResult<Keypair> {
+    fn create_token_account(&self, owner: &Pubkey, token_mint: &Pubkey) -> ClientResult<Keypair> {
         let token_account = Keypair::new();
 
         let mut transaction = Transaction::new_with_payer(
@@ -80,7 +82,7 @@ impl SplToken for Client {
     }
 
     fn mint_to(
-        &mut self,
+        &self,
         owner: &Keypair,
         token_mint: &Pubkey,
         account: &Pubkey,
@@ -104,7 +106,7 @@ impl SplToken for Client {
     }
 
     fn transfer_to(
-        &mut self,
+        &self,
         owner: &Keypair,
         token_mint: &Pubkey,
         source: &Pubkey,

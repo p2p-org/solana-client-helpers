@@ -1,9 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
 pub use solana_client::{client_error, rpc_client::RpcClient};
-use solana_program::{hash::Hash, program_error::ProgramError, pubkey::Pubkey, system_instruction};
 use solana_sdk::{
+    hash::Hash,
+    program_error::ProgramError,
+    pubkey::Pubkey,
     signature::{Keypair, Signature, Signer},
+    system_instruction,
     transaction::Transaction,
 };
 use thiserror::Error;
@@ -42,9 +45,8 @@ impl Client {
         Ok(())
     }
 
-    #[track_caller]
     pub fn create_account(
-        &mut self,
+        &self,
         owner: &Pubkey,
         account_data_len: usize,
         lamports: Option<u64>,
@@ -72,13 +74,16 @@ impl Client {
         Ok(account)
     }
 
-    #[track_caller]
+    pub fn get_associated_token_address(wallet_address: &Pubkey, token_mint: &Pubkey) -> Pubkey {
+        spl_associated_token_account::get_associated_token_address(wallet_address, token_mint)
+    }
+
     pub fn create_associated_token_account(
-        &mut self,
+        &self,
         funder: &Keypair,
         recipient: &Pubkey,
         token_mint: &Pubkey,
-    ) -> ClientResult<()> {
+    ) -> ClientResult<Pubkey> {
         let mut transaction = Transaction::new_with_payer(
             &[spl_associated_token_account::create_associated_token_account(
                 &funder.pubkey(),
@@ -87,26 +92,22 @@ impl Client {
             )],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), funder], self.recent_blockhash()?);
-        self.process_transaction(&transaction)
+        if funder.pubkey() == self.payer_pubkey() {
+            transaction.sign(&[self.payer()], self.recent_blockhash()?);
+        } else {
+            transaction.sign(&[self.payer(), funder], self.recent_blockhash()?);
+        };
+        self.process_transaction(&transaction)?;
+
+        Ok(Self::get_associated_token_address(recipient, token_mint))
     }
 
-    #[track_caller]
     pub fn create_associated_token_account_by_payer(
-        &mut self,
+        &self,
         recipient: &Pubkey,
         token_mint: &Pubkey,
-    ) -> ClientResult<()> {
-        let mut transaction = Transaction::new_with_payer(
-            &[spl_associated_token_account::create_associated_token_account(
-                &self.payer_pubkey(),
-                recipient,
-                token_mint,
-            )],
-            Some(&self.payer_pubkey()),
-        );
-        transaction.sign(&[self.payer()], self.recent_blockhash()?);
-        self.process_transaction(&transaction)
+    ) -> ClientResult<Pubkey> {
+        self.create_associated_token_account(self.payer(), recipient, token_mint)
     }
 
     pub fn airdrop(&self, to_pubkey: &Pubkey, lamports: u64) -> ClientResult<Signature> {

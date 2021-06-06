@@ -1,12 +1,17 @@
 [package]
 name = "solana-client-helpers"
-version = "0.3.0"
+version = "0.4.0"
+description = "Helpers for Solana RPC-client"
 authors = ["Alexander XX <freecoder.xx@gmail.com>"]
+repository = "https://github.com/p2p-org/solana-admin-client.git"
+categories = ["network-programming", "web-programming::http-client"]
+keywords = ["solana", "rpc", "client", "helper"]
+license = "MIT"
+readme = "README.md"
 edition = "2018"
 
 [dependencies]
 thiserror = "1.0"
-solana-program = "1.6"
 solana-sdk = "1.6"
 solana-client = "1.6"
 spl-token = { version = "3.1", features = ["no-entrypoint"] }

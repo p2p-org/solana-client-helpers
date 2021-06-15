@@ -12,6 +12,12 @@ use super::client::{Client, ClientResult};
 pub trait SplToken {
     fn create_token_mint(&self, owner: &Pubkey, decimals: u8) -> ClientResult<Keypair>;
     fn create_token_account(&self, owner: &Pubkey, token_mint: &Pubkey) -> ClientResult<Keypair>;
+    fn create_token_account_with_lamports(
+        &self,
+        owner: &Pubkey,
+        token_mint: &Pubkey,
+        lamports: u64,
+    ) -> ClientResult<Keypair>;
     fn mint_to(
         &self,
         owner: &Keypair,
@@ -29,6 +35,16 @@ pub trait SplToken {
         amount: u64,
         decimals: u8,
     ) -> ClientResult<()>;
+    fn get_associated_token_address(wallet_address: &Pubkey, token_mint: &Pubkey) -> Pubkey;
+    fn create_associated_token_account(
+        &self,
+        funder: &Keypair,
+        recipient: &Pubkey,
+        token_mint: &Pubkey,
+    ) -> ClientResult<Pubkey>;
+    fn create_associated_token_account_by_payer(&self, recipient: &Pubkey, token_mint: &Pubkey)
+        -> ClientResult<Pubkey>;
+    fn close_token_account(&self, owner: &Keypair, account: &Pubkey, destination: &Pubkey) -> ClientResult<()>;
 }
 
 impl SplToken for Client {
@@ -55,6 +71,19 @@ impl SplToken for Client {
     }
 
     fn create_token_account(&self, owner: &Pubkey, token_mint: &Pubkey) -> ClientResult<Keypair> {
+        self.create_token_account_with_lamports(
+            owner,
+            token_mint,
+            self.get_minimum_balance_for_rent_exemption(TokenAccount::LEN)?,
+        )
+    }
+
+    fn create_token_account_with_lamports(
+        &self,
+        owner: &Pubkey,
+        token_mint: &Pubkey,
+        lamports: u64,
+    ) -> ClientResult<Keypair> {
         let token_account = Keypair::new();
 
         let mut transaction = Transaction::new_with_payer(
@@ -62,7 +91,7 @@ impl SplToken for Client {
                 system_instruction::create_account(
                     &self.payer_pubkey(),
                     &token_account.pubkey(),
-                    self.get_minimum_balance_for_rent_exemption(TokenAccount::LEN)?,
+                    lamports,
                     TokenAccount::LEN as u64,
                     &spl_token::id(),
                 ),
@@ -124,6 +153,57 @@ impl SplToken for Client {
                 &[],
                 amount,
                 decimals,
+            )?],
+            Some(&self.payer_pubkey()),
+        );
+        transaction.sign(&[self.payer(), &owner], self.recent_blockhash()?);
+        self.process_transaction(&transaction)
+    }
+
+    fn get_associated_token_address(wallet_address: &Pubkey, token_mint: &Pubkey) -> Pubkey {
+        spl_associated_token_account::get_associated_token_address(wallet_address, token_mint)
+    }
+
+    fn create_associated_token_account(
+        &self,
+        funder: &Keypair,
+        recipient: &Pubkey,
+        token_mint: &Pubkey,
+    ) -> ClientResult<Pubkey> {
+        let mut transaction = Transaction::new_with_payer(
+            &[spl_associated_token_account::create_associated_token_account(
+                &funder.pubkey(),
+                recipient,
+                token_mint,
+            )],
+            Some(&self.payer_pubkey()),
+        );
+        if funder.pubkey() == self.payer_pubkey() {
+            transaction.sign(&[self.payer()], self.recent_blockhash()?);
+        } else {
+            transaction.sign(&[self.payer(), funder], self.recent_blockhash()?);
+        };
+        self.process_transaction(&transaction)?;
+
+        Ok(Self::get_associated_token_address(recipient, token_mint))
+    }
+
+    fn create_associated_token_account_by_payer(
+        &self,
+        recipient: &Pubkey,
+        token_mint: &Pubkey,
+    ) -> ClientResult<Pubkey> {
+        self.create_associated_token_account(self.payer(), recipient, token_mint)
+    }
+
+    fn close_token_account(&self, owner: &Keypair, account: &Pubkey, destination: &Pubkey) -> ClientResult<()> {
+        let mut transaction = Transaction::new_with_payer(
+            &[spl_token::instruction::close_account(
+                &spl_token::id(),
+                account,
+                destination,
+                &owner.pubkey(),
+                &[],
             )?],
             Some(&self.payer_pubkey()),
         );

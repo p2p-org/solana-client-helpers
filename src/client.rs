@@ -74,42 +74,6 @@ impl Client {
         Ok(account)
     }
 
-    pub fn get_associated_token_address(wallet_address: &Pubkey, token_mint: &Pubkey) -> Pubkey {
-        spl_associated_token_account::get_associated_token_address(wallet_address, token_mint)
-    }
-
-    pub fn create_associated_token_account(
-        &self,
-        funder: &Keypair,
-        recipient: &Pubkey,
-        token_mint: &Pubkey,
-    ) -> ClientResult<Pubkey> {
-        let mut transaction = Transaction::new_with_payer(
-            &[spl_associated_token_account::create_associated_token_account(
-                &funder.pubkey(),
-                recipient,
-                token_mint,
-            )],
-            Some(&self.payer_pubkey()),
-        );
-        if funder.pubkey() == self.payer_pubkey() {
-            transaction.sign(&[self.payer()], self.recent_blockhash()?);
-        } else {
-            transaction.sign(&[self.payer(), funder], self.recent_blockhash()?);
-        };
-        self.process_transaction(&transaction)?;
-
-        Ok(Self::get_associated_token_address(recipient, token_mint))
-    }
-
-    pub fn create_associated_token_account_by_payer(
-        &self,
-        recipient: &Pubkey,
-        token_mint: &Pubkey,
-    ) -> ClientResult<Pubkey> {
-        self.create_associated_token_account(self.payer(), recipient, token_mint)
-    }
-
     pub fn airdrop(&self, to_pubkey: &Pubkey, lamports: u64) -> ClientResult<Signature> {
         let (blockhash, _fee_calculator) = self.client.get_recent_blockhash()?;
         let signature = self.request_airdrop_with_blockhash(to_pubkey, lamports, &blockhash)?;

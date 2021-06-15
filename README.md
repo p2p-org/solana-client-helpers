@@ -38,16 +38,16 @@ fn main() -> ClientResult<()> {
 
     client.mint_to(&sender, &token_mint.pubkey(), &sender_token_account, 1000, 2)?;
 
-    let balance = client.get_token_account_balance(&sender_token_account)?;
-    assert_eq!(balance.ui_amount, Some(10.00));
+    let sender_balance = client.get_token_account_balance(&sender_token_account)?;
+    assert_eq!(sender_balance.ui_amount, Some(10.00));
 
     client.transfer_to(&sender, &token_mint.pubkey(), &sender_token_account, &recipient_token_account, 500, 2)?;
 
-    let balance = client.get_token_account_balance(&sender_token_account)?;
-    assert_eq!(balance.ui_amount, Some(5.00));
+    let sender_balance = client.get_token_account_balance(&sender_token_account)?;
+    assert_eq!(sender_balance.ui_amount, Some(5.00));
    
-    let balance = client.get_token_account_balance(&recipient_token_account)?;
-    assert_eq!(balance.ui_amount, Some(5.00));
+    let recipient_balance = client.get_token_account_balance(&recipient_token_account)?;
+    assert_eq!(recipient_balance.ui_amount, Some(5.00));
 
    Ok(())
 }

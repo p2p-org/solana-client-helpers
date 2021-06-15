@@ -136,7 +136,7 @@ impl SplToken for Client {
 
     fn transfer_to(
         &self,
-        owner: &Keypair,
+        authority: &Keypair,
         token_mint: &Pubkey,
         source: &Pubkey,
         destination: &Pubkey,
@@ -149,14 +149,14 @@ impl SplToken for Client {
                 source,
                 token_mint,
                 destination,
-                &owner.pubkey(),
+                &authority.pubkey(),
                 &[],
                 amount,
                 decimals,
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &owner], self.recent_blockhash()?);
+        transaction.sign(&[self.payer(), &authority], self.recent_blockhash()?);
         self.process_transaction(&transaction)
     }
 

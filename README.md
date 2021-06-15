@@ -8,7 +8,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-solana-client-helpers = "0.4"
+solana-client-helpers = "0.5"
 ```
 
 Now you can use client helper like this:
@@ -34,11 +34,20 @@ fn main() -> ClientResult<()> {
 
     let token_mint = client.create_token_mint(&sender.pubkey(), 2)?;
     let sender_token_account = client.create_associated_token_account_by_payer(&sender.pubkey(), &token_mint.pubkey())?;
+    let recipient_token_account = client.create_associated_token_account_by_payer(&recipient.pubkey(), &token_mint.pubkey())?;
 
     client.mint_to(&sender, &token_mint.pubkey(), &sender_token_account, 1000, 2)?;
 
     let balance = client.get_token_account_balance(&sender_token_account)?;
     assert_eq!(balance.ui_amount, Some(10.00));
+
+    client.transfer_to(&sender, &token_mint.pubkey(), &sender_token_account, &recipient_token_account, 500, 2)?;
+
+    let balance = client.get_token_account_balance(&sender_token_account)?;
+    assert_eq!(balance.ui_amount, Some(5.00));
+   
+    let balance = client.get_token_account_balance(&recipient_token_account)?;
+    assert_eq!(balance.ui_amount, Some(5.00));
 
    Ok(())
 }

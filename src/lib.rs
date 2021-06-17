@@ -40,8 +40,14 @@
 //! }
 //! ```
 
-pub use crate::{client::*, print::*, token::*};
+pub use solana_client;
+pub use spl_associated_token_account;
+pub use spl_token;
+pub use spl_token_swap;
+
+pub use crate::{client::*, print::*, swap::*, token::*};
 
 pub mod client;
 pub mod print;
+pub mod swap;
 pub mod token;

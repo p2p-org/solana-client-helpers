@@ -8,7 +8,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-solana-client-helpers = "0.5"
+solana-client-helpers = "1.0"
 ```
 
 Now you can use client helper like this:

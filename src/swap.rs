@@ -39,7 +39,7 @@ pub trait SplSwap {
     ) -> ClientResult<(Keypair, Keypair)>;
 
     #[allow(clippy::too_many_arguments)]
-    fn create_swap_and_init<'a>(
+    fn create_swap_and_init(
         &self,
         swap_program_id: &Pubkey,
         owner: &Keypair,

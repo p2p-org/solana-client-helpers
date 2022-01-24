@@ -130,7 +130,7 @@ impl SplToken for Client {
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &owner], self.latest_blockhash()?);
+        transaction.sign(&[self.payer(), owner], self.latest_blockhash()?);
         self.process_transaction(&transaction)
     }
 
@@ -156,7 +156,7 @@ impl SplToken for Client {
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &authority], self.latest_blockhash()?);
+        transaction.sign(&[self.payer(), authority], self.latest_blockhash()?);
         self.process_transaction(&transaction)
     }
 
@@ -207,7 +207,7 @@ impl SplToken for Client {
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &owner], self.latest_blockhash()?);
+        transaction.sign(&[self.payer(), owner], self.latest_blockhash()?);
         self.process_transaction(&transaction)
     }
 }

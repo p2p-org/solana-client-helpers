@@ -100,7 +100,7 @@ impl SplSwap for Client {
                     &spl_token::id(),
                     &fee_account.pubkey(),
                     pool_token_mint_address,
-                    &fee_account_owner_address,
+                    fee_account_owner_address,
                 )?,
                 system_instruction::create_account(
                     &self.payer_pubkey(),

@@ -139,7 +139,7 @@ impl SplSwap for Client {
                 &fee_account,
                 &pool_token_initial_supply_account,
             ],
-            self.recent_blockhash()?,
+            self.latest_blockhash()?,
         );
         self.process_transaction(&transaction)?;
 
@@ -239,7 +239,7 @@ impl SplSwap for Client {
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&vec![self.payer(), user_transfer_authority], self.recent_blockhash()?);
+        transaction.sign(&vec![self.payer(), user_transfer_authority], self.latest_blockhash()?);
 
         self.process_transaction(&transaction)
     }

@@ -64,7 +64,7 @@ impl SplToken for Client {
             ],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &token_mint], self.recent_blockhash()?);
+        transaction.sign(&[self.payer(), &token_mint], self.latest_blockhash()?);
         self.process_transaction(&transaction)?;
 
         Ok(token_mint)
@@ -104,7 +104,7 @@ impl SplToken for Client {
             ],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &token_account], self.recent_blockhash()?);
+        transaction.sign(&[self.payer(), &token_account], self.latest_blockhash()?);
         self.process_transaction(&transaction)?;
 
         Ok(token_account)
@@ -130,7 +130,7 @@ impl SplToken for Client {
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &owner], self.recent_blockhash()?);
+        transaction.sign(&[self.payer(), &owner], self.latest_blockhash()?);
         self.process_transaction(&transaction)
     }
 
@@ -156,7 +156,7 @@ impl SplToken for Client {
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &authority], self.recent_blockhash()?);
+        transaction.sign(&[self.payer(), &authority], self.latest_blockhash()?);
         self.process_transaction(&transaction)
     }
 
@@ -179,9 +179,9 @@ impl SplToken for Client {
             Some(&self.payer_pubkey()),
         );
         if funder.pubkey() == self.payer_pubkey() {
-            transaction.sign(&[self.payer()], self.recent_blockhash()?);
+            transaction.sign(&[self.payer()], self.latest_blockhash()?);
         } else {
-            transaction.sign(&[self.payer(), funder], self.recent_blockhash()?);
+            transaction.sign(&[self.payer(), funder], self.latest_blockhash()?);
         };
         self.process_transaction(&transaction)?;
 
@@ -207,7 +207,7 @@ impl SplToken for Client {
             )?],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &owner], self.recent_blockhash()?);
+        transaction.sign(&[self.payer(), &owner], self.latest_blockhash()?);
         self.process_transaction(&transaction)
     }
 }

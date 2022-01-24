@@ -36,8 +36,8 @@ impl Client {
         self.payer.pubkey()
     }
 
-    pub fn recent_blockhash(&self) -> ClientResult<Hash> {
-        Ok(self.client.get_recent_blockhash()?.0)
+    pub fn latest_blockhash(&self) -> ClientResult<Hash> {
+        Ok(self.client.get_latest_blockhash()?)
     }
 
     pub fn process_transaction(&self, transaction: &Transaction) -> ClientResult<()> {
@@ -68,14 +68,14 @@ impl Client {
             )],
             Some(&self.payer_pubkey()),
         );
-        transaction.sign(&[self.payer(), &account], self.recent_blockhash()?);
+        transaction.sign(&[self.payer(), &account], self.latest_blockhash()?);
         self.process_transaction(&transaction)?;
 
         Ok(account)
     }
 
     pub fn airdrop(&self, to_pubkey: &Pubkey, lamports: u64) -> ClientResult<Signature> {
-        let (blockhash, _fee_calculator) = self.client.get_recent_blockhash()?;
+        let blockhash = self.client.get_latest_blockhash()?;
         let signature = self.request_airdrop_with_blockhash(to_pubkey, lamports, &blockhash)?;
         self.confirm_transaction_with_spinner(&signature, &blockhash, self.commitment())?;
 
